@@ -1,0 +1,85 @@
+name: Build Release
+
+on:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - ghactions
+
+jobs:
+  build-release:
+    name: Build and push a tag image
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+        id: go
+      - name: Set Env Tags
+        run: |
+          echo RELEASE_TAG=$(echo $GITHUB_REF | cut -d '/' -f 3) >> $GITHUB_ENV
+          echo IMAGE_REGISTRY=$(echo ${{ secrets.IMAGE_REGISTRY }} | cut -d '/' -f 1) >> $GITHUB_ENV
+          echo IMAGE_REPO=$(echo ${{ secrets.IMAGE_REGISTRY }} | cut -d '/' -f 2) >> $GITHUB_ENV
+
+      - name: Build Operator Image
+        id: build-operator-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ secrets.IMAGE_REGISTRY }}/docling-operator
+          tags: ${{ env.RELEASE_TAG }}
+          build-args: |
+            release_tag=${{ env.RELEASE_TAG }}
+          dockerfiles: |
+            ./Dockerfile
+
+      - name: Push Operator Image
+        id: push-operator-image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: docling-operator
+          tags: ${{ steps.build-operator-image.outputs.tags }}
+          registry: ${{ secrets.IMAGE_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build Bundle
+        id: build-bundle
+        run: |
+          IMAGE_REGISTRY=${{ env.IMAGE_REGISTRY }} \
+          IMAGE_REPO=${{ env.IMAGE_REPO }} \
+          RELEASE_TAG=${{ env.RELEASE_TAG }} \
+          VERSION=${{ env.RELEASE_TAG }} \
+          USE_IMAGE_DIGESTS=true \
+          make bundle
+
+      # This is a very naive implementation. Mainly for PoC
+      - name: Add OpenShift metadata to bundle
+        id: add-openshift-metadata
+        run: |
+          echo '  com.redhat.openshift.versions: "v4.8"' >> bundle/annotations.yaml
+          echo 'LABEL com.redhat.openshift.versions="v4.8"' >> bundle.Dockerfile
+
+      - name: Build Bundle Image
+        id: build-bundle-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator-bundle
+          tags: ${{ env.RELEASE_TAG }}
+          dockerfiles: |
+            ./bundle.Dockerfile
+
+      - name: Push Bundle Image
+        id: push-bundle-image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: docling-operator-bundle
+          tags: ${{ steps.build-bundle-image.outputs.tags }}
+          registry: ${{ env.IMAGE_REGISTRY }}/${{  env.IMAGE_REPO }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - run: echo "Operator Image pushed to ${{ steps.push-operator-image.outputs.registry-paths }}"
+      - run: echo "Bundle Image pushed to ${{ steps.push-bundle-image.outputs.registry-paths }}"
