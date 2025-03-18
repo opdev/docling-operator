@@ -85,7 +85,7 @@ func (r *DeploymentReconciler) deploymentForDoclingServ(doclingServ *v1alpha1.Do
 		}}...)
 	}
 
-	ctrl.SetControllerReference(doclingServ, deployment, r.Scheme)
+	_ = ctrl.SetControllerReference(doclingServ, deployment, r.Scheme)
 
 	return deployment
 }
