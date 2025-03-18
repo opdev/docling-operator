@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  sanity:
+    name: sanity
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+        id: go
+
+      - run: sudo rm -f /usr/local/bin/kustomize
+
+      - name: Generate
+        run: make generate && git diff --exit-code
+
+      - name: Manifests
+        run: make manifests && git diff --exit-code
+
+      - name: Tidy
+        run: make tidy
+
+      - name: Vet
+        run: make vet
+
+      - name: Format
+        run: make fmt
+
+      - name: Run golangci linting checks
+        run: make lint
+
+      - name: Test
+        run: make test

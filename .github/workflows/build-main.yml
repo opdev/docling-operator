@@ -1,16 +1,12 @@
-name: Build Release
+name: Build Main
 
 on:
-  release:
-    types:
-      - published
   push:
-    branches:
-      - ghactions
+    branches: [ main, ghactions ]
 
 jobs:
-  build-release:
-    name: Build and push a tag image
+  build-main:
+    name: Build and push a main snapshot image
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -18,9 +14,16 @@ jobs:
         with:
           go-version-file: go.mod
         id: go
+      - name: Fetch latest release version
+        uses: reloc8/action-latest-release-version@1.0.0
+        id: fetch-latest-release
       - name: Set Env Tags
+        run: echo RELEASE_TAG=${{ steps.fetch-latest-release.outputs.latest-release }}-alpha >> $GITHUB_ENV
+      - name: Set a default if release tag is empty
+        if: ${{ steps.fetch-latest-release.outputs.latest-release }} == ""
+        run: echo RELEASE_TAG=0.0.0 >> $GITHUB_ENV
+      - name: Set image registry env
         run: |
-          echo RELEASE_TAG=$(echo $GITHUB_REF | cut -d '/' -f 3) >> $GITHUB_ENV
           echo IMAGE_REGISTRY=$(echo ${{ secrets.IMAGE_REGISTRY }} | cut -d '/' -f 1) >> $GITHUB_ENV
           echo IMAGE_REPO=$(echo ${{ secrets.IMAGE_REGISTRY }} | cut -d '/' -f 2) >> $GITHUB_ENV
 
@@ -28,9 +31,10 @@ jobs:
         id: build-operator-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ secrets.IMAGE_REGISTRY }}/docling-operator
-          tags: ${{ env.RELEASE_TAG }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator
+          tags: ${{ github.sha }} latest
           build-args: |
+            quay_expiration=1w
             release_tag=${{ env.RELEASE_TAG }}
           dockerfiles: |
             ./Dockerfile
@@ -41,7 +45,7 @@ jobs:
         with:
           image: docling-operator
           tags: ${{ steps.build-operator-image.outputs.tags }}
-          registry: ${{ secrets.IMAGE_REGISTRY }}
+          registry: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
@@ -52,22 +56,14 @@ jobs:
           IMAGE_REPO=${{ env.IMAGE_REPO }} \
           RELEASE_TAG=${{ env.RELEASE_TAG }} \
           VERSION=${{ env.RELEASE_TAG }} \
-          USE_IMAGE_DIGESTS=true \
           make bundle
-
-      # This is a very naive implementation. Mainly for PoC
-      - name: Add OpenShift metadata to bundle
-        id: add-openshift-metadata
-        run: |
-          echo '  com.redhat.openshift.versions: "v4.8"' >> bundle/annotations.yaml
-          echo 'LABEL com.redhat.openshift.versions="v4.8"' >> bundle.Dockerfile
 
       - name: Build Bundle Image
         id: build-bundle-image
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator-bundle
-          tags: ${{ env.RELEASE_TAG }}
+          tags: latest
           dockerfiles: |
             ./bundle.Dockerfile
 
@@ -77,7 +73,7 @@ jobs:
         with:
           image: docling-operator-bundle
           tags: ${{ steps.build-bundle-image.outputs.tags }}
-          registry: ${{ env.IMAGE_REGISTRY }}/${{  env.IMAGE_REPO }}
+          registry: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
