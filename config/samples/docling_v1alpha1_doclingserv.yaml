@@ -7,5 +7,5 @@ metadata:
   name: doclingserv-sample
   namespace: docling
 spec:
-  imageReference: "quay.io/ds4sd/docling-serve:latest"
+  imageReference: "quay.io/docling-project/docling-serve:latest"
   replicaCount: 1
