@@ -51,7 +51,9 @@ var _ = Describe("DoclingServ Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: doclinggithubiov1alpha1.DoclingServSpec{
+						ImageReference: "registry/image:tag",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
