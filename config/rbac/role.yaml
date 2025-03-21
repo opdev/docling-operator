@@ -22,8 +22,10 @@ rules:
   - pods
   - services
   verbs:
+  - create
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - docling.github.io
