@@ -74,6 +74,7 @@ func (r *DoclingServReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		reconcilers.NewDeploymentReconciler(r.Client, reqLogger, r.Scheme),
 		reconcilers.NewServiceReconciler(r.Client, reqLogger, r.Scheme),
 		reconcilers.NewRouteReconciler(r.Client, reqLogger, r.Scheme),
+		reconcilers.NewStatusReconciler(r.Client, reqLogger, r.Scheme),
 	}
 
 	requeueResult := false
