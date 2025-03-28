@@ -45,6 +45,29 @@ type DoclingServSpec struct {
 type DoclingServStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// ObservedGeneration is the generation last observed by the controller
+	// +optional
+	DoclingObservedGeneration int64 `json:"doclingObservedGeneration,omitempty"`
+
+	// DoclingServImage is the observed docling-serve image in the deployment
+	// +optional
+	DoclingServImage string `json:"doclingServImage,omitempty"`
+
+	// ReadyReplicas is the observed number of ready replicas in the deployment
+	// +optional
+	DoclingReadyReplicas int32 `json:"doclingReadyReplicas,omitempty"`
+
+	// DoclingServUIEnabled is the observed docling-serve image in the deployment
+	// +optional
+	DoclingServUIEnabled string `json:"doclingServUIEnabled,omitempty"`
+
+	// conditions describes the state of the operator's reconciliation functionality.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +optional
+	// Conditions is a list of conditions related to operator reconciliation
+	Conditions []metav1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 }
 
 // +kubebuilder:object:root=true
