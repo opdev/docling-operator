@@ -10,5 +10,8 @@ spec:
     image: "quay.io/docling-project/docling-serve:latest"
     enableUI: false
     instances: 1
+  engine:
+    local:
+      numWorkers: 2
   route:
     enabled: false

@@ -2,6 +2,7 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
@@ -14,10 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	deploymentName = "docling-serv"
 )
 
 type StatusReconciler struct {
@@ -35,7 +32,6 @@ func NewStatusReconciler(client client.Client, log logr.Logger, scheme *runtime.
 }
 
 func (r *StatusReconciler) Reconcile(ctx context.Context, doclingServ *v1alpha1.DoclingServ) (bool, error) {
-
 	log := r.Log.WithValues("Status.ObservedGeneration", doclingServ.Generation)
 	doclingServ.Status.ObservedGeneration = doclingServ.Generation
 
@@ -78,7 +74,7 @@ func (r *StatusReconciler) commitStatus(ctx context.Context, doclingServ *v1alph
 
 func (r *StatusReconciler) reconcileDoclingDeploymentStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
 	deployment := appsv1.Deployment{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: doclingServ.Namespace}, &deployment)
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-deployment", doclingServ.Name), Namespace: doclingServ.Namespace}, &deployment)
 	if err != nil {
 		log.Error(err, "failed to get doclingServ deployment")
 		condition := metav1.Condition{
@@ -138,7 +134,7 @@ func (r *StatusReconciler) reconcileDoclingDeploymentStatus(ctx context.Context,
 
 func (r *StatusReconciler) reconcileDoclingServiceStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
 	service := corev1.Service{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: doclingServ.Name + "-service", Namespace: doclingServ.Namespace}, &service)
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-service", doclingServ.Name), Namespace: doclingServ.Namespace}, &service)
 	if err != nil {
 		log.Error(err, "failed to get doclingServ service")
 		condition := metav1.Condition{
@@ -195,8 +191,21 @@ func (r *StatusReconciler) reconcileDoclingServiceStatus(ctx context.Context, do
 }
 
 func (r *StatusReconciler) reconcileDoclingRouteStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
+	if doclingServ.Spec.Route != nil && !doclingServ.Spec.Route.Enabled {
+		// Route is not enabled, so write a condition as such and return
+		condition := metav1.Condition{
+			Type:               "RouteCreated",
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.Time{},
+			Reason:             "RouteDisabled",
+			Message:            "A docling route is disabled",
+		}
+		meta.SetStatusCondition(&doclingServ.Status.Conditions, condition)
+		return
+	}
+
 	route := routev1.Route{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: doclingServ.Name + "-route", Namespace: doclingServ.Namespace}, &route)
+	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-route", doclingServ.Name), Namespace: doclingServ.Namespace}, &route)
 	if err != nil {
 		log.Error(err, "failed to get doclingServ route")
 		condition := metav1.Condition{

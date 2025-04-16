@@ -33,7 +33,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServ *v1alp
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: doclingServ.Name + "-deployment", Namespace: doclingServ.Namespace}}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
 		labels := labelsForDocling(doclingServ.Name)
-		if deployment.ObjectMeta.CreationTimestamp.IsZero() {
+		if deployment.CreationTimestamp.IsZero() {
 			deployment.Spec.Selector = &metav1.LabelSelector{
 				MatchLabels: labels,
 			}
@@ -45,15 +45,16 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServ *v1alp
 				Labels: labels,
 			},
 			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{{
-					Image: doclingServ.Spec.APIServer.Image,
-					Name:  "docling-serv",
-					Command: []string{
-						"docling-serve",
-						"run",
+				Containers: []corev1.Container{
+					{
+						Image: doclingServ.Spec.APIServer.Image,
+						Name:  "docling-serv",
+						Command: []string{
+							"docling-serve",
+							"run",
+						},
+						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
-					ImagePullPolicy: corev1.PullIfNotPresent,
-				},
 				},
 			},
 		}
