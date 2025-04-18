@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.io/opdev/docling-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,24 +14,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type StatusReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-func NewStatusReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *StatusReconciler {
+func NewStatusReconciler(client client.Client, scheme *runtime.Scheme) *StatusReconciler {
 	return &StatusReconciler{
 		Client: client,
-		Log:    log,
 		Scheme: scheme,
 	}
 }
 
 func (r *StatusReconciler) Reconcile(ctx context.Context, doclingServ *v1alpha1.DoclingServ) (bool, error) {
-	log := r.Log.WithValues("Status.ObservedGeneration", doclingServ.Generation)
+	log := logf.FromContext(ctx, "Status.ObservedGeneration", doclingServ.Generation)
+	ctx = logf.IntoContext(ctx, log)
 	doclingServ.Status.ObservedGeneration = doclingServ.Generation
 
 	var err error
@@ -40,25 +39,26 @@ func (r *StatusReconciler) Reconcile(ctx context.Context, doclingServ *v1alpha1.
 
 	// Always try to commit the status and propagate the error from CommitStatus.
 	defer func() {
-		err = r.commitStatus(ctx, doclingServ, log)
+		err = r.commitStatus(ctx, doclingServ)
 		if err != nil {
 			requeue = true
 		}
 	}()
 
 	// Update deployment status
-	r.reconcileDoclingDeploymentStatus(ctx, doclingServ, log)
+	r.reconcileDoclingDeploymentStatus(ctx, doclingServ)
 
 	// Update service status
-	r.reconcileDoclingServiceStatus(ctx, doclingServ, log)
+	r.reconcileDoclingServiceStatus(ctx, doclingServ)
 
 	// Update route status
-	r.reconcileDoclingRouteStatus(ctx, doclingServ, log)
+	r.reconcileDoclingRouteStatus(ctx, doclingServ)
 
 	return requeue, err
 }
 
-func (r *StatusReconciler) commitStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) error {
+func (r *StatusReconciler) commitStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ) error {
+	log := logf.FromContext(ctx)
 	err := r.Client.Status().Update(ctx, doclingServ)
 	if err != nil && apierrors.IsConflict(err) {
 		log.Info("conflict updating doclingServ status")
@@ -72,10 +72,10 @@ func (r *StatusReconciler) commitStatus(ctx context.Context, doclingServ *v1alph
 	return err
 }
 
-func (r *StatusReconciler) reconcileDoclingDeploymentStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
+func (r *StatusReconciler) reconcileDoclingDeploymentStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ) {
+	log := logf.FromContext(ctx)
 	deployment := appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-deployment", doclingServ.Name), Namespace: doclingServ.Namespace}, &deployment)
-	if err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-deployment", doclingServ.Name), Namespace: doclingServ.Namespace}, &deployment); err != nil {
 		log.Error(err, "failed to get doclingServ deployment")
 		condition := metav1.Condition{
 			Type:               "DeploymentCreated",
@@ -132,10 +132,10 @@ func (r *StatusReconciler) reconcileDoclingDeploymentStatus(ctx context.Context,
 	}
 }
 
-func (r *StatusReconciler) reconcileDoclingServiceStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
+func (r *StatusReconciler) reconcileDoclingServiceStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ) {
+	log := logf.FromContext(ctx)
 	service := corev1.Service{}
-	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-service", doclingServ.Name), Namespace: doclingServ.Namespace}, &service)
-	if err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-service", doclingServ.Name), Namespace: doclingServ.Namespace}, &service); err != nil {
 		log.Error(err, "failed to get doclingServ service")
 		condition := metav1.Condition{
 			Type:               "ServiceCreated",
@@ -190,7 +190,8 @@ func (r *StatusReconciler) reconcileDoclingServiceStatus(ctx context.Context, do
 	}
 }
 
-func (r *StatusReconciler) reconcileDoclingRouteStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ, log logr.Logger) {
+func (r *StatusReconciler) reconcileDoclingRouteStatus(ctx context.Context, doclingServ *v1alpha1.DoclingServ) {
+	log := logf.FromContext(ctx)
 	if doclingServ.Spec.Route != nil && !doclingServ.Spec.Route.Enabled {
 		// Route is not enabled, so write a condition as such and return
 		condition := metav1.Condition{
@@ -205,8 +206,7 @@ func (r *StatusReconciler) reconcileDoclingRouteStatus(ctx context.Context, docl
 	}
 
 	route := routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-route", doclingServ.Name), Namespace: doclingServ.Namespace}, &route)
-	if err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-route", doclingServ.Name), Namespace: doclingServ.Namespace}, &route); err != nil {
 		log.Error(err, "failed to get doclingServ route")
 		condition := metav1.Condition{
 			Type:               "RouteCreated",

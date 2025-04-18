@@ -4,7 +4,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/go-logr/logr"
 	"github.io/opdev/docling-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,23 +12,24 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type DeploymentReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-func NewDeploymentReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *DeploymentReconciler {
+func NewDeploymentReconciler(client client.Client, scheme *runtime.Scheme) *DeploymentReconciler {
 	return &DeploymentReconciler{
 		Client: client,
-		Log:    log,
 		Scheme: scheme,
 	}
 }
 
 func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServ *v1alpha1.DoclingServ) (bool, error) {
+	log := logf.FromContext(ctx)
+
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: doclingServ.Name + "-deployment", Namespace: doclingServ.Namespace}}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
 		labels := labelsForDocling(doclingServ.Name)
@@ -86,11 +86,11 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServ *v1alp
 		return nil
 	})
 	if err != nil {
-		r.Log.Error(err, "Error reconciling Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
+		log.Error(err, "Error reconciling Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 		return true, err
 	}
 
-	r.Log.Info("Successfully reconciled Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
+	log.Info("Successfully reconciled Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 
 	return false, nil
 }

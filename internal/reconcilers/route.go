@@ -3,7 +3,6 @@ package reconcilers
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.io/opdev/docling-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,18 +13,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type RouteReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-func NewRouteReconciler(client client.Client, log logr.Logger, scheme *runtime.Scheme) *RouteReconciler {
+func NewRouteReconciler(client client.Client, scheme *runtime.Scheme) *RouteReconciler {
 	return &RouteReconciler{
 		Client: client,
-		Log:    log,
 		Scheme: scheme,
 	}
 }
@@ -39,6 +37,7 @@ func (r *RouteReconciler) Reconcile(ctx context.Context, doclingServ *v1alpha1.D
 }
 
 func (r *RouteReconciler) createOrUpdate(ctx context.Context, doclingServ *v1alpha1.DoclingServ) (bool, error) {
+	log := logf.FromContext(ctx)
 	route := &routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: doclingServ.Name + "-route", Namespace: doclingServ.Namespace}}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, route, func() error {
 		labels := labelsForDocling(doclingServ.Name)
@@ -59,30 +58,30 @@ func (r *RouteReconciler) createOrUpdate(ctx context.Context, doclingServ *v1alp
 		_ = ctrl.SetControllerReference(doclingServ, route, r.Scheme)
 		return nil
 	})
-
 	if err != nil {
-		r.Log.Error(err, "Error creating/updating Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
+		log.Error(err, "Error creating/updating Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
 		return true, err
 	}
 
-	r.Log.Info("Successfully created/updated Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
+	log.Info("Successfully created/updated Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
 	return false, nil
 }
 
 func (r *RouteReconciler) delete(ctx context.Context, doclingServ *v1alpha1.DoclingServ) (bool, error) {
+	log := logf.FromContext(ctx)
 	route := &routev1.Route{ObjectMeta: metav1.ObjectMeta{Name: doclingServ.Name + "-route", Namespace: doclingServ.Namespace}}
 	if err := r.Get(ctx, types.NamespacedName{Name: doclingServ.Name + "-route", Namespace: doclingServ.Namespace}, route); err != nil && !errors.IsNotFound(err) {
-		r.Log.Error(err, "Error deleting Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
+		log.Error(err, "Error deleting Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
 		return true, err
 	} else if errors.IsNotFound(err) {
 		return false, nil
 	}
 
 	if err := r.Delete(ctx, route); err != nil {
-		r.Log.Error(err, "Error deleting Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
+		log.Error(err, "Error deleting Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
 		return true, err
 	}
 
-	r.Log.Info("Successfully deleted Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
+	log.Info("Successfully deleted Route", "Route.Namespace", route.Namespace, "Route.Name", route.Name)
 	return false, nil
 }

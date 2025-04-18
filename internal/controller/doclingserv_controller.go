@@ -61,6 +61,8 @@ func (r *DoclingServReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	reqLogger := logf.FromContext(ctx, "Request.Namespace", req.Namespace, "Request.Name", req.Name)
 	reqLogger.Info("Reconciling DoclingServ")
 
+	ctx = logf.IntoContext(ctx, reqLogger)
+
 	currentDoclingServ := &v1alpha1.DoclingServ{}
 	err := r.Get(ctx, req.NamespacedName, currentDoclingServ)
 	if err != nil {
@@ -71,10 +73,10 @@ func (r *DoclingServReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	resourceReconcilers := []reconcilers.Reconciler{
-		reconcilers.NewDeploymentReconciler(r.Client, reqLogger, r.Scheme),
-		reconcilers.NewServiceReconciler(r.Client, reqLogger, r.Scheme),
-		reconcilers.NewRouteReconciler(r.Client, reqLogger, r.Scheme),
-		reconcilers.NewStatusReconciler(r.Client, reqLogger, r.Scheme),
+		reconcilers.NewDeploymentReconciler(r.Client, r.Scheme),
+		reconcilers.NewServiceReconciler(r.Client, r.Scheme),
+		reconcilers.NewRouteReconciler(r.Client, r.Scheme),
+		reconcilers.NewStatusReconciler(r.Client, r.Scheme),
 	}
 
 	requeueResult := false
