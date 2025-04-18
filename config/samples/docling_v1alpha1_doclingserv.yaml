@@ -10,6 +10,7 @@ spec:
     image: "quay.io/docling-project/docling-serve:latest"
     enableUI: false
     instances: 1
+    serviceAccountName: docling-sa
   engine:
     local:
       numWorkers: 2

@@ -50,6 +50,9 @@ type APIServer struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Instance Count",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	// +kubebuilder:default=1
 	Instances int32 `json:"instances,omitempty"`
+
+	// specify the service account to use
+	ServiceAccountName string `json:"serviceAccountName"`
 }
 
 // Route configures an OpenShift route, exposed Docling API outside the cluster.

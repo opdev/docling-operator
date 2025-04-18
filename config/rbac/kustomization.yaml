@@ -24,4 +24,7 @@ resources:
 # if you do not want those helpers be installed with your Project.
 - doclingserv_editor_role.yaml
 - doclingserv_viewer_role.yaml
-
+# These RBAC configurations are used to run the docling server
+- docling-sa.yaml
+- docling-role.yaml
+- docling-role-binding.yaml
