@@ -56,6 +56,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServ *v1alp
 						ImagePullPolicy: corev1.PullIfNotPresent,
 					},
 				},
+				ServiceAccountName: doclingServ.Spec.APIServer.ServiceAccountName,
 			},
 		}
 

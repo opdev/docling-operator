@@ -56,6 +56,10 @@ spec:
                       workloads to create.
                     format: int32
                     type: integer
+                  serviceAccountName:
+                    description: specify the service account to use
+                    type: string
+                    default: "docling-sa"
                 required:
                 - image
                 type: object
