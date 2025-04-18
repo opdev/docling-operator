@@ -59,9 +59,9 @@ spec:
                   serviceAccountName:
                     description: specify the service account to use
                     type: string
+                    default: "docling-sa"
                 required:
                 - image
-                - serviceAccountName
                 type: object
               engine:
                 description: Engine defines which type of docling-serve compute engine
