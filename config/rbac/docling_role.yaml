@@ -12,4 +12,4 @@ rules:
   - services
   - deployments
   verbs:
-  - *
+  - '*'
