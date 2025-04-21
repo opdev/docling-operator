@@ -5,49 +5,11 @@ metadata:
   name: docling-role
 rules:
 - apiGroups:
-  - apps
+  - v1
   resources:
-  - deployments
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
+  - persistentVolumes
   - pods
   - services
+  - deployments
   verbs:
-  - create
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - docling.github.io
-  resources:
-  - doclingservs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - docling.github.io
-  resources:
-  - doclingservs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - docling.github.io
-  resources:
-  - doclingservs/status
-  verbs:
-  - get
-  - patch
-  - update
+  - *
