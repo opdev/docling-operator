@@ -50,6 +50,11 @@ type APIServer struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Instance Count",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	// +kubebuilder:default=1
 	Instances int32 `json:"instances,omitempty"`
+
+	// ConfigMapName represents the config map name that contains additional configurations.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap Name",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
+	// +kubebuilder:validation:Optional
+	ConfigMapName string `json:"configMapName,omitempty"`
 }
 
 // Route configures an OpenShift route, exposed Docling API outside the cluster.

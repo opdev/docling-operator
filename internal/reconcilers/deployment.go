@@ -80,6 +80,15 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 			}}...)
 		}
 
+		if len(doclingServe.Spec.APIServer.ConfigMapName) > 0 {
+			deployment.Spec.Template.Spec.Containers[0].EnvFrom = append(deployment.Spec.Template.Spec.Containers[0].EnvFrom, []corev1.EnvFromSource{{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: doclingServe.Spec.APIServer.ConfigMapName},
+					Optional:             new(bool),
+				},
+			}}...)
+		}
+
 		_ = ctrl.SetControllerReference(doclingServe, deployment, r.Scheme)
 
 		return nil

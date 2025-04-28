@@ -42,6 +42,10 @@ spec:
               apiServer:
                 description: APIServer configures a docling-serve workload
                 properties:
+                  configMapName:
+                    description: ConfigMapName represents the config map name that
+                      contains additional configurations.
+                    type: string
                   enableUI:
                     description: EnableUI determines whether to run the docling-serve
                       ui.
