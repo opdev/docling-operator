@@ -25,6 +25,9 @@ jobs:
       - name: Manifests
         run: make manifests && git diff --exit-code
 
+      - name: Bundle
+        run: make bundle && git diff --exit-code
+
       - name: Tidy
         run: make tidy
 
