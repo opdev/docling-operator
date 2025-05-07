@@ -54,7 +54,79 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       version: v1alpha1
-  description: docling-operator provisions an instance of the docling api service.
+  description: |-
+    **Overview**
+
+    The Docling Operator is responsible for managing the full lifecycle of Docling Serve instances in your Kubernetes or OpenShift container platforms.
+
+
+    **Docling Serve**
+
+    The Docling Serve application deploys a REST API for consuming and integrating Docling in your workflows.
+
+    The API offers endpoints for multiple types of interaction, i.e. both synchronous and asynchronous endpoints, as well as a status subscriptions via websockets.
+
+    The options for the Docling conversion can be customized at runtime by the users (e.g. which OCR engine, which enrichment models, etc). Users can also choose which of the many DoclingDocument export formats (JSON, Markdown, HTML, DocTags, etc) to receive in the result response.
+
+    Docling Serve allows to choose between a local compute engine, i.e. running Docling in the same container as the API server, or a distributed compute engine which leverages Kubeflow Pipelines to parallelize large-scale ingestion jobs.
+
+    **Docling**
+
+    Docling is a powerful library which simplifies document processing, parsing diverse formats — including advanced PDF understanding — and providing seamless integrations with the gen AI ecosystem.
+
+    Learn more about the Docling Project by visiting the GitHub organization at [https://github.com/docling-project](https://github.com/docling-project).
+
+
+    **Sample DoclingServe Custom Resources**
+
+
+    To deploy with the `local` compute engine with the UI enabled and Route exposed:
+    ```yaml
+    apiVersion: docling.github.io/v1alpha1
+    kind: DoclingServe
+    metadata:
+      labels:
+        app.kubernetes.io/name: docling-operator
+        app.kubernetes.io/managed-by: kustomize
+      name: doclingserve-local-sample
+    spec:
+      apiServer:
+        image: "quay.io/docling-project/docling-serve:latest"
+        enableUI: true
+        instances: 1
+      engine:
+        local:
+          numWorkers: 2
+      route:
+        enabled: true
+    ```
+
+    To deploy with the `KFP` compute engine with the UI enabled and Route exposed. **Note: Kubeflow Pipeline must be installed and setup in the cluster to use this option.**:
+    ```yaml
+    apiVersion: docling.github.io/v1alpha1
+    kind: DoclingServe
+    metadata:
+      labels:
+        app.kubernetes.io/name: docling-operator
+        app.kubernetes.io/managed-by: kustomize
+      name: doclingserve-kfp-sample
+    spec:
+      apiServer:
+        image: "quay.io/docling-project/docling-serve:latest"
+        enableUI: true
+        instances: 1
+      engine:
+        kfp:
+          endpoint: "https://NAME.NAMESPACE.svc.cluster.local:8888"
+      route:
+        enabled: true
+    ```
+
+    **Additional Configurations**
+
+
+    The CRD exposes `apiServer.configMapName` to enable additional configurations of the `docling-serve` workload. For a full list of configurations can be found on docling-serve's
+    [Configuration](https://github.com/docling-project/docling-serve/blob/main/docs/configuration.md) page.
   displayName: Docling Operator
   icon:
   - base64data: placeholder
@@ -78,6 +150,9 @@ spec:
   links:
   - name: Docling Operator
     url: https://docling-project.github.io/docling/
+  maintainers:
+  - email: docling-technical-discuss@lists.lfaidata.foundation
+    name: Docling Maintainers
   maturity: alpha
   provider:
     name: Docling Maintainers
