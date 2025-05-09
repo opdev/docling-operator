@@ -45,7 +45,7 @@ type DoclingServeReconciler struct {
 // +kubebuilder:rbac:groups=docling.github.io,resources=doclingserves/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=docling.github.io,resources=doclingserves/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=pods;services,verbs=update;create;get;list;watch
+// +kubebuilder:rbac:groups=core,resources=pods;services;serviceaccounts,verbs=update;create;get;list;watch
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes;routes/custom-host,verbs=*
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -73,6 +73,7 @@ func (r *DoclingServeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	resourceReconcilers := []reconcilers.Reconciler{
+		reconcilers.NewServiceAccountReconciler(r.Client, r.Scheme),
 		reconcilers.NewDeploymentReconciler(r.Client, r.Scheme),
 		reconcilers.NewServiceReconciler(r.Client, r.Scheme),
 		reconcilers.NewRouteReconciler(r.Client, r.Scheme),

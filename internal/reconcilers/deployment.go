@@ -46,6 +46,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 				Labels: labels,
 			},
 			Spec: corev1.PodSpec{
+				ServiceAccountName: serviceAccountName,
 				Containers: []corev1.Container{
 					{
 						Image: doclingServe.Spec.APIServer.Image,
