@@ -8,7 +8,7 @@ RELEASE_TAG ?= "latest"
 CHANNELS="alpha"
 DEFAULT_CHANNEL="alpha"
 IMAGE_REGISTRY ?= "quay.io"
-IMAGE_REPO ?= "opdev"
+IMAGE_REPO ?= "docling-project"
 IMAGE_NAME ?= "docling-operator"
 
 # CHANNELS define the bundle channels used in the bundle.

@@ -9,7 +9,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: docling-operator
-repo: github.io/opdev/docling-operator
+repo: github.io/docling-project/docling-operator
 resources:
 - api:
     crdVersion: v1
@@ -17,6 +17,6 @@ resources:
   controller: true
   domain: docling.github.io
   kind: DoclingServe
-  path: github.io/opdev/docling-operator/api/v1alpha1
+  path: github.io/docling-project/docling-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

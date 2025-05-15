@@ -1,4 +1,4 @@
-module github.io/opdev/docling-operator
+module github.io/docling-project/docling-operator
 
 go 1.24.1
 

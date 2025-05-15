@@ -43,7 +43,7 @@ linters:
       - pkg: k8s.io/client-go/kubernetes/scheme
         alias: clientgoscheme
     goimports:
-      local-prefixes: github.com/opdev/docling-operator
+      local-prefixes: github.com/docling-project/docling-operator
 
   exclusions:
     generated: lax

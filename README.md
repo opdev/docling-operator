@@ -28,7 +28,7 @@ engine:
 ### To Deploy on the cluster
 
 ```sh
-git clone https://github.com/opdev/docling-operator.git
+git clone https://github.com/docling-project/docling-operator.git
 ```
 ```sh
 cd <project>

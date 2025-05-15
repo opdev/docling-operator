@@ -29,8 +29,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.io/opdev/docling-operator/api/v1alpha1"
-	"github.io/opdev/docling-operator/internal/reconcilers"
+	"github.io/docling-project/docling-operator/api/v1alpha1"
+	"github.io/docling-project/docling-operator/internal/reconcilers"
 )
 
 var log = logf.Log.WithName("controller_doclingserve")

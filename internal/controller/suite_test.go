@@ -34,7 +34,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	doclinggithubiov1alpha1 "github.io/opdev/docling-operator/api/v1alpha1"
+	doclinggithubiov1alpha1 "github.io/docling-project/docling-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

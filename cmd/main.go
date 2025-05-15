@@ -20,7 +20,7 @@ import (
 	"context"
 	"os"
 
-	"github.io/opdev/docling-operator/cmd/internal/manager"
+	"github.io/docling-project/docling-operator/cmd/internal/manager"
 )
 
 func main() {

@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.io/opdev/docling-operator/test/utils"
+	"github.io/docling-project/docling-operator/test/utils"
 )
 
 const namespace = "docling-operator-system"

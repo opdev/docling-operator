@@ -4,7 +4,7 @@ import (
 	"context"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.io/opdev/docling-operator/api/v1alpha1"
+	"github.io/docling-project/docling-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

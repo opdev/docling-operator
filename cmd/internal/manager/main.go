@@ -20,8 +20,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	doclinggithubiov1alpha1 "github.io/opdev/docling-operator/api/v1alpha1"
-	"github.io/opdev/docling-operator/internal/controller"
+	doclinggithubiov1alpha1 "github.io/docling-project/docling-operator/api/v1alpha1"
+	"github.io/docling-project/docling-operator/internal/controller"
 	// +kubebuilder:scaffold:imports
 )
 
