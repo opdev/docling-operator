@@ -29,7 +29,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ secrets.IMAGE_REGISTRY }}/docling-operator
-          tags: ${{ env.RELEASE_TAG }}
+          tags: ${{ env.RELEASE_TAG }} latest
           build-args: |
             release_tag=${{ env.RELEASE_TAG }}
           dockerfiles: |
@@ -67,7 +67,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator-bundle
-          tags: ${{ env.RELEASE_TAG }}
+          tags: ${{ env.RELEASE_TAG }} latest
           dockerfiles: |
             ./bundle.Dockerfile
 

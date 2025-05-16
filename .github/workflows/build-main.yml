@@ -14,14 +14,10 @@ jobs:
         with:
           go-version-file: go.mod
         id: go
-      - name: Fetch latest release version
-        uses: reloc8/action-latest-release-version@1.0.0
-        id: fetch-latest-release
       - name: Set Env Tags
-        run: echo RELEASE_TAG=${{ steps.fetch-latest-release.outputs.latest-release }}-alpha >> $GITHUB_ENV
-      - name: Set a default if release tag is empty
-        if: ${{ steps.fetch-latest-release.outputs.latest-release }} == ""
-        run: echo RELEASE_TAG=0.0.0 >> $GITHUB_ENV
+        run: |
+          echo RELEASE_TAG=0.0.0-${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
+          echo BRANCH_TAG=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
       - name: Set image registry env
         run: |
           echo IMAGE_REGISTRY=$(echo ${{ secrets.IMAGE_REGISTRY }} | cut -d '/' -f 1) >> $GITHUB_ENV
@@ -32,7 +28,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator
-          tags: ${{ github.sha }} latest ${{ env.RELEASE_TAG }}
+          tags: ${{ github.sha }} ${{ env.RELEASE_TAG }}  ${{ env.BRANCH_TAG }}
           build-args: |
             quay_expiration=1w
             release_tag=${{ env.RELEASE_TAG }}
@@ -63,7 +59,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPO }}/docling-operator-bundle
-          tags: latest
+          tags: ${{ env.RELEASE_TAG }}  ${{ env.BRANCH_TAG }}
           dockerfiles: |
             ./bundle.Dockerfile
 
