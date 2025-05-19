@@ -51,6 +51,7 @@ spec:
                       ui.
                     type: boolean
                   image:
+                    default: quay.io/docling-project/docling-serve:latest
                     description: Image specifics which docling-serve container image
                       to deploy.
                     type: string

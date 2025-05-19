@@ -3,7 +3,6 @@
 resources:
 - bases/docling-operator.clusterserviceversion.yaml
 - ../default
-- ../samples
 - ../scorecard
 patches:
   - path: bases/docling-operator.icon.yaml

@@ -40,6 +40,7 @@ type APIServer struct {
 	// Image specifics which docling-serve container image to deploy.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Image",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
 	// +kubebuilder:validation:Required
+	// +kubebuilder:default="quay.io/docling-project/docling-serve:latest"
 	Image string `json:"image"`
 
 	// EnableUI determines whether to run the docling-serve ui.
