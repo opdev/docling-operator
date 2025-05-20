@@ -4,6 +4,11 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
+    categories: AI/ML,Document Processing
+    containerImage: quay.io/docling-project/docling-operator:latest
+    description: Docling Operator manages the lifecycle of Docling Serve instances.
+    repository: https://github.com/docling-project/docling-operator
+    support: Community
   name: docling-operator.v0.0.0
   namespace: placeholder
 spec:
@@ -159,6 +164,7 @@ spec:
   - email: docling-technical-discuss@lists.lfaidata.foundation
     name: Docling Maintainers
   maturity: alpha
+  minKubeVersion: 1.25.0
   provider:
     name: Docling Maintainers
     url: https://docling-project.github.io/docling/
