@@ -2,11 +2,13 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.io/docling-project/docling-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -32,7 +34,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 	log := logf.FromContext(ctx)
 
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: doclingServe.Name + "-deployment", Namespace: doclingServe.Namespace}}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
 		labels := labelsForDocling(doclingServe.Name)
 		if deployment.CreationTimestamp.IsZero() {
 			deployment.Spec.Selector = &metav1.LabelSelector{
@@ -96,22 +98,26 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 			},
 		}
 
+		// Collect env vars and sources and do one append at the end
+		additionalEnvVars := make([]corev1.EnvVar, 0, 10)
+		additionalEnvFrom := make([]corev1.EnvFromSource, 0, 10)
+
 		if doclingServe.Spec.APIServer.EnableUI {
-			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, []corev1.EnvVar{{
+			additionalEnvVars = append(additionalEnvVars, corev1.EnvVar{
 				Name:  "DOCLING_SERVE_ENABLE_UI",
 				Value: "true",
-			}}...)
+			})
 		}
 
 		if doclingServe.Spec.Engine.Local != nil {
-			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, []corev1.EnvVar{{
+			additionalEnvVars = append(additionalEnvVars, corev1.EnvVar{
 				Name:  "DOCLING_SERVE_ENG_LOC_NUM_WORKERS",
 				Value: strconv.Itoa(int(doclingServe.Spec.Engine.Local.NumWorkers)),
-			}}...)
+			})
 		}
 
 		if doclingServe.Spec.Engine.KFP != nil {
-			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env,
+			additionalEnvVars = append(additionalEnvVars,
 				[]corev1.EnvVar{
 					{
 						Name:  "DOCLING_SERVE_ENG_KFP_ENDPOINT",
@@ -120,27 +126,73 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 					{
 						Name:  "DOCLING_SERVE_ENG_KIND",
 						Value: "kfp",
-					}}...)
+					},
+				}...)
 		}
 
 		if len(doclingServe.Spec.APIServer.ConfigMapName) > 0 {
-			deployment.Spec.Template.Spec.Containers[0].EnvFrom = append(deployment.Spec.Template.Spec.Containers[0].EnvFrom, []corev1.EnvFromSource{{
+			additionalEnvFrom = append(additionalEnvFrom, corev1.EnvFromSource{
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: doclingServe.Spec.APIServer.ConfigMapName},
 					Optional:             new(bool),
 				},
-			}}...)
+			})
 		}
 
 		if doclingServe.Spec.APIServer.Resources != nil {
 			deployment.Spec.Template.Spec.Containers[0].Resources = *doclingServe.Spec.APIServer.Resources
 		}
 
+		if doclingServe.Spec.ArtifactsVolume == nil {
+			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, corev1.Volume{
+				Name: doclingModelCache,
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						Medium:    "",
+						SizeLimit: resource.NewScaledQuantity(defaultVolumeSize, resource.Giga),
+					},
+				},
+			})
+			deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+				Name:      doclingModelCache,
+				ReadOnly:  true,
+				MountPath: defaultArtifactsPath,
+			})
+		}
+
+		if doclingServe.Spec.ArtifactsVolume != nil {
+			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, corev1.Volume{
+				Name: doclingModelCache,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("%s-pvc", doclingModelCache),
+						ReadOnly:  true,
+					},
+				},
+			})
+
+			deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+				Name:      doclingModelCache,
+				ReadOnly:  true,
+				MountPath: defaultArtifactsPath,
+			})
+		}
+		additionalEnvVars = append(additionalEnvVars,
+			corev1.EnvVar{
+				Name:  "DOCLING_SERVER_ARTIFACTS_PATH",
+				Value: defaultArtifactsPath,
+			})
+
+		if len(additionalEnvVars) > 0 {
+			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, additionalEnvVars...)
+		}
+		if len(additionalEnvFrom) > 0 {
+			deployment.Spec.Template.Spec.Containers[0].EnvFrom = append(deployment.Spec.Template.Spec.Containers[0].EnvFrom, additionalEnvFrom...)
+		}
 		_ = ctrl.SetControllerReference(doclingServe, deployment, r.Scheme)
 
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log.Error(err, "Error reconciling Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 		return true, err
 	}
@@ -148,8 +200,4 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 	log.Info("Successfully reconciled Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 
 	return false, nil
-}
-
-func labelsForDocling(name string) map[string]string {
-	return map[string]string{"app": "docling-serve", "doclingserve_cr": name}
 }

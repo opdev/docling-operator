@@ -57,9 +57,12 @@ spec:
                     type: string
                   instances:
                     default: 1
-                    description: Instances represents the desired number of docling-serve
-                      workloads to create.
+                    description: |-
+                      Instances represents the desired number of docling-serve workloads to create.
+                      Currently limited to a single instance.
                     format: int32
+                    maximum: 1
+                    minimum: 1
                     type: integer
                   resources:
                     description: Resources
@@ -123,6 +126,24 @@ spec:
                 required:
                 - image
                 type: object
+              artifactsVolume:
+                description: ArtifactsVolume specifies whether to use a volume for
+                  storing models or not, and the template to use for the PVC
+                properties:
+                  pvcSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    default: 16Gi
+                    description: Customize the size of the PVC create for model artifact
+                      storage.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  storageClassName:
+                    description: Volume Mode Filsystem storageclass to use for PVC
+                      creation
+                    type: string
+                type: object
               engine:
                 description: Engine defines which type of docling-serve compute engine
                   to deploy. The selected engine will run all the async jobs.
@@ -155,6 +176,13 @@ spec:
                     not both
                   rule: (has(self.local) && !has(self.kfp)) || (!has(self.local) &&
                     has(self.kfp))
+              models:
+                default: []
+                description: Models is the list of models that will be pulled prior
+                  to starting the Docling instance(s).
+                items:
+                  type: string
+                type: array
               route:
                 description: Route configures an OpenShift route, exposed Docling
                   API outside the cluster.
