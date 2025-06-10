@@ -74,6 +74,7 @@ func (r *DoclingServeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	resourceReconcilers := []reconcilers.Reconciler{
 		reconcilers.NewServiceAccountReconciler(r.Client, r.Scheme),
+		reconcilers.NewVolumeReconciler(r.Client, r.Scheme),
 		reconcilers.NewDeploymentReconciler(r.Client, r.Scheme),
 		reconcilers.NewServiceReconciler(r.Client, r.Scheme),
 		reconcilers.NewRouteReconciler(r.Client, r.Scheme),

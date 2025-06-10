@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,6 +34,14 @@ type DoclingServeSpec struct {
 
 	// +kubebuilder:validation:Optional,name="Route"
 	Route *Route `json:"route,omitempty"`
+
+	// +kubebuilder:validation:Optional,name="Artifacts Volume"
+	ArtifactsVolume *ArtifactsVolume `json:"artifactsVolume,omitempty"`
+
+	// Models is the list of models that will be pulled prior to starting the Docling instance(s).
+	// +kubebuilder:default={}
+	// +kubebuilder:validation:Optional,name="Models"
+	Models []string `json:"models,omitempty"`
 }
 
 // APIServer configures a docling-serve workload
@@ -98,6 +107,17 @@ type KFP struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Kubeflow Pipeline Endpoint",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
 	// +kubebuilder:validation:Required
 	Endpoint string `json:"endpoint"`
+}
+
+// ArtifactsVolume specifies whether to use a volume for storing models or not, and the template to use for the PVC
+// +kubebuilder:validation:Optional
+type ArtifactsVolume struct {
+	// Customize the size of the PVC create for model artifact storage.
+	// +kubebuilder:default:="16Gi"
+	PVCSize resource.Quantity `json:"pvcSize,omitempty"`
+	// Volume Mode Filsystem storageclass to use for PVC creation
+	// +kubebuilder:validation:Optional
+	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
 // DoclingServeStatus defines the observed state of DoclingServe
