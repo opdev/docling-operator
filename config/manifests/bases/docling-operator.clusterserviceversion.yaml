@@ -36,8 +36,9 @@ spec:
         path: apiServer.image
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Instances represents the desired number of docling-serve workloads
-          to create.
+      - description: |-
+          Instances represents the desired number of docling-serve workloads to create.
+          Currently limited to a single instance.
         displayName: Instance Count
         path: apiServer.instances
         x-descriptors:

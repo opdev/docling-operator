@@ -7,6 +7,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	"github.io/docling-project/docling-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -45,6 +46,12 @@ func (r *StatusReconciler) Reconcile(ctx context.Context, doclingServe *v1alpha1
 		}
 	}()
 
+	// Update volume status
+	r.reconcileDoclingVolumeStatus(ctx, doclingServe)
+
+	// Update job status
+	r.reconcileDoclingJobStatus(ctx, doclingServe)
+
 	// Update deployment status
 	r.reconcileDoclingDeploymentStatus(ctx, doclingServe)
 
@@ -59,7 +66,7 @@ func (r *StatusReconciler) Reconcile(ctx context.Context, doclingServe *v1alpha1
 
 func (r *StatusReconciler) commitStatus(ctx context.Context, doclingServe *v1alpha1.DoclingServe) error {
 	log := logf.FromContext(ctx)
-	err := r.Client.Status().Update(ctx, doclingServe)
+	err := r.Status().Update(ctx, doclingServe)
 	if err != nil && apierrors.IsConflict(err) {
 		log.Info("conflict updating doclingServe status")
 		return err
@@ -249,5 +256,53 @@ func (r *StatusReconciler) reconcileDoclingRouteStatus(ctx context.Context, docl
 			Message:            routeCondition.Message,
 		}
 		meta.SetStatusCondition(&doclingServe.Status.Conditions, condition)
+	}
+}
+
+func (r *StatusReconciler) reconcileDoclingVolumeStatus(ctx context.Context, doclingServe *v1alpha1.DoclingServe) {
+	log := logf.FromContext(ctx)
+
+	if doclingServe.Spec.ArtifactsVolume == nil {
+		// No status to report
+		return
+	}
+
+	volume := corev1.PersistentVolumeClaim{}
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-pvc", doclingModelCache), Namespace: doclingServe.Namespace}, &volume); err != nil {
+		log.Error(err, "failed to get doclingServe persistent volume claim")
+		condition := metav1.Condition{
+			Type:               "PersistentVolumeClaimCreated",
+			Status:             metav1.ConditionUnknown,
+			ObservedGeneration: volume.Generation,
+			LastTransitionTime: metav1.Time{},
+			Reason:             "PersistentVolumeClaimStatusError",
+			Message:            err.Error(),
+		}
+		meta.SetStatusCondition(&doclingServe.Status.Conditions, condition)
+		return
+	}
+}
+
+func (r *StatusReconciler) reconcileDoclingJobStatus(ctx context.Context, doclingServe *v1alpha1.DoclingServe) {
+	log := logf.FromContext(ctx)
+
+	if doclingServe.Spec.ArtifactsVolume == nil {
+		// No status to report
+		return
+	}
+
+	job := batchv1.Job{}
+	if err := r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-job", doclingModelCache), Namespace: doclingServe.Namespace}, &job); err != nil {
+		log.Error(err, "failed to get doclingServe persistent volume claim")
+		condition := metav1.Condition{
+			Type:               "JobCreated",
+			Status:             metav1.ConditionUnknown,
+			ObservedGeneration: job.Generation,
+			LastTransitionTime: metav1.Time{},
+			Reason:             "JobStatusError",
+			Message:            err.Error(),
+		}
+		meta.SetStatusCondition(&doclingServe.Status.Conditions, condition)
+		return
 	}
 }
