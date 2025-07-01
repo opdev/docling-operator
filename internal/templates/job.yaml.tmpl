@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.Name }}
+  namespace: {{ .Values.Namespace }}
+spec:
+  selector: {}
+  template:
+    metadata:
+      name: docling-model-load
+    spec:
+      containers:
+        - name: loader
+          image: {{ .Values.Image }}
+          command:
+            - docling-tools
+            - models
+            - download
+            - '--output-dir=/opt/docling/models'
+            {{ range $model := .Values.Spec.Models }}
+            - {{ $model }}
+            {{ end }}
+          volumeMounts:
+            - name: docling-model-cache
+              mountPath: "/opt/docling/models"
+      volumes:
+        - name: docling-model-cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.PersistentVolumeClaimName }}
+      restartPolicy: Never

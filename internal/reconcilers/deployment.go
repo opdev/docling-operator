@@ -2,6 +2,7 @@ package reconcilers
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.io/docling-project/docling-operator/api/v1alpha1"
@@ -15,10 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-const (
-	defaultArtifactsPath = "/opt/docling/models"
 )
 
 type DeploymentReconciler struct {
@@ -148,7 +145,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 
 		if doclingServe.Spec.ArtifactsVolume == nil {
 			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, corev1.Volume{
-				Name: "artifacts",
+				Name: doclingModelCache,
 				VolumeSource: corev1.VolumeSource{
 					EmptyDir: &corev1.EmptyDirVolumeSource{
 						Medium:    "",
@@ -157,16 +154,34 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 				},
 			})
 			deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
-				Name:      "artifacts",
+				Name:      doclingModelCache,
 				ReadOnly:  true,
 				MountPath: defaultArtifactsPath,
 			})
-			additionalEnvVars = append(additionalEnvVars,
-				corev1.EnvVar{
-					Name:  "DOCLING_SERVER_ARTIFACTS_PATH",
-					Value: defaultArtifactsPath,
-				})
 		}
+
+		if doclingServe.Spec.ArtifactsVolume != nil {
+			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, corev1.Volume{
+				Name: doclingModelCache,
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("%s-pvc", doclingModelCache),
+						ReadOnly:  true,
+					},
+				},
+			})
+
+			deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+				Name:      doclingModelCache,
+				ReadOnly:  true,
+				MountPath: defaultArtifactsPath,
+			})
+		}
+		additionalEnvVars = append(additionalEnvVars,
+			corev1.EnvVar{
+				Name:  "DOCLING_SERVER_ARTIFACTS_PATH",
+				Value: defaultArtifactsPath,
+			})
 
 		if len(additionalEnvVars) > 0 {
 			deployment.Spec.Template.Spec.Containers[0].Env = append(deployment.Spec.Template.Spec.Containers[0].Env, additionalEnvVars...)
@@ -185,8 +200,4 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, doclingServe *v1al
 	log.Info("Successfully reconciled Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 
 	return false, nil
-}
-
-func labelsForDocling(name string) map[string]string {
-	return map[string]string{"app": "docling-serve", "doclingserve_cr": name}
 }

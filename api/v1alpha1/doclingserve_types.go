@@ -58,8 +58,12 @@ type APIServer struct {
 	EnableUI bool `json:"enableUI,omitempty"`
 
 	// Instances represents the desired number of docling-serve workloads to create.
+	// Currently limited to a single instance.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Instance Count",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
 	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=1
+	// +kubebuilder:validation:ExclusiveMaximum=false
 	Instances int32 `json:"instances,omitempty"`
 
 	// ConfigMapName represents the config map name that contains additional configurations.

@@ -57,9 +57,12 @@ spec:
                     type: string
                   instances:
                     default: 1
-                    description: Instances represents the desired number of docling-serve
-                      workloads to create.
+                    description: |-
+                      Instances represents the desired number of docling-serve workloads to create.
+                      Currently limited to a single instance.
                     format: int32
+                    maximum: 1
+                    minimum: 1
                     type: integer
                   resources:
                     description: Resources
