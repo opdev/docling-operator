@@ -21,6 +21,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +46,8 @@ type DoclingServeReconciler struct {
 // +kubebuilder:rbac:groups=docling.github.io,resources=doclingserves/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=docling.github.io,resources=doclingserves/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=pods;services;serviceaccounts,verbs=update;create;get;list;watch
+// +kubebuilder:rbac:groups=core,resources=pods;services;serviceaccounts;persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes;routes/custom-host,verbs=*
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -70,30 +72,43 @@ func (r *DoclingServeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// Error reading the object - requeue the request.
 			return reconcile.Result{}, nil
 		}
+		return reconcile.Result{}, err
 	}
 
 	resourceReconcilers := []reconcilers.Reconciler{
 		reconcilers.NewServiceAccountReconciler(r.Client, r.Scheme),
+		reconcilers.NewVolumeReconciler(r.Client, r.Scheme),
+		reconcilers.NewJobReconciler(r.Client, r.Scheme),
 		reconcilers.NewDeploymentReconciler(r.Client, r.Scheme),
 		reconcilers.NewServiceReconciler(r.Client, r.Scheme),
 		reconcilers.NewRouteReconciler(r.Client, r.Scheme),
-		reconcilers.NewStatusReconciler(r.Client, r.Scheme),
 	}
+	statusReconciler := reconcilers.NewStatusReconciler(r.Client, r.Scheme)
 
-	requeueResult := false
-	var errResult error = nil
 	doclingServe := currentDoclingServe.DeepCopy()
+	var reconcileErr error
+	requeue := false
+
 	for _, r := range resourceReconcilers {
-		reque, err := r.Reconcile(ctx, doclingServe)
+		shouldRequeue, err := r.Reconcile(ctx, doclingServe)
 		if err != nil {
-			// Only capture the first error
-			log.Error(err, "requeuing with error")
-			errResult = err
+			reconcileErr = err
+			break
 		}
-		requeueResult = requeueResult || reque
+		if shouldRequeue {
+			requeue = true
+		}
 	}
 
-	return ctrl.Result{Requeue: requeueResult}, errResult
+	if _, err := statusReconciler.Reconcile(ctx, doclingServe); err != nil {
+		if reconcileErr == nil {
+			reconcileErr = err
+		} else {
+			log.Error(err, "additionally, failed to update status")
+		}
+	}
+
+	return ctrl.Result{Requeue: requeue}, reconcileErr
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -102,6 +117,9 @@ func (r *DoclingServeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1alpha1.DoclingServe{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&batchv1.Job{}).
 		Owns(&routev1.Route{}).
 		Complete(r)
 }
