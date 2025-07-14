@@ -69,7 +69,7 @@ privileges or be logged in as admin.
 You can apply the samples (examples) from the config/sample:
 
 ```sh
-kubectl apply -k config/samples/docling_v1alpha1_doclingserve.yaml
+kubectl apply -k config/samples/
 ```
 
 >**NOTE**: Ensure that the samples has default values to test it out.
@@ -78,7 +78,7 @@ kubectl apply -k config/samples/docling_v1alpha1_doclingserve.yaml
 **Delete the instances (CRs) from the cluster:**
 
 ```sh
-kubectl delete -k config/samples/docling_v1alpha1_doclingserve.yaml
+kubectl delete -k config/samples/
 ```
 
 **Delete the APIs(CRDs) from the cluster:**
